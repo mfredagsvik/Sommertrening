@@ -1,0 +1,38 @@
+:root {
+  --bg: #f4f8f5;
+  --card: #ffffff;
+  --text: #102116;
+  --muted: #5e6f64;
+  --accent: #1473e6;
+  --accent-dark: #074c9e;
+  --green: #16a34a;
+  --danger: #c0392b;
+  --border: #d7e3db;
+}
+* { box-sizing: border-box; }
+body { margin: 0; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+.app { width: min(100%, 620px); margin: 0 auto; padding: 16px; }
+.hero { background: linear-gradient(135deg, #08264a, #1473e6); color: white; border-radius: 24px; padding: 24px; margin-bottom: 16px; }
+.badge { display: inline-block; background: rgba(255,255,255,0.18); border-radius: 999px; padding: 7px 13px; font-weight: 800; }
+h1 { margin: 10px 0 4px; font-size: 34px; }
+h2 { margin: 0 0 14px; font-size: 20px; }
+p { line-height: 1.45; }
+.card { background: var(--card); border-radius: 20px; padding: 18px; margin-bottom: 14px; box-shadow: 0 8px 24px rgba(0,0,0,0.06); }
+.button-grid { display: grid; gap: 10px; }
+.button-grid.two { grid-template-columns: 1fr 1fr; }
+.choice { width: 100%; border: 2px solid var(--border); background: #fff; color: var(--text); border-radius: 16px; padding: 15px; font-size: 18px; font-weight: 800; text-align: left; cursor: pointer; }
+.choice small { display: block; font-weight: 600; color: var(--muted); margin-top: 3px; }
+.choice.active { border-color: var(--accent); background: #eaf3ff; color: var(--accent-dark); }
+.exercise-list label { display: flex; gap: 12px; align-items: flex-start; font-weight: 650; padding: 13px 0; border-bottom: 1px solid #edf2ef; }
+.exercise-list input { width: 24px; height: 24px; flex: none; }
+button { width: 100%; font-size: 18px; border-radius: 16px; padding: 15px; border: 0; font-weight: 900; cursor: pointer; }
+.primary { background: var(--green); color: white; margin-top: 16px; }
+.secondary { background: #30475e; color: white; margin-top: 8px; }
+.danger { background: var(--danger); color: white; margin-top: 8px; }
+button:active { transform: scale(0.99); }
+.message { font-weight: 900; color: #166534; }
+.intro { background: #eef6ff; border: 1px solid #cfe5ff; padding: 12px; border-radius: 14px; }
+.status-number { font-size: 42px; font-weight: 950; color: var(--accent-dark); }
+summary { font-weight: 800; cursor: pointer; }
+ul { padding-left: 20px; }
+@media (max-width: 420px) { .button-grid.two { grid-template-columns: 1fr; } h1 { font-size: 29px; } }
