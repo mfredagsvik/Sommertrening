@@ -131,9 +131,38 @@ const weeks = [
 
 
 
+// Ukevisning for spillerne:
+// Spillerne får bare åpne aktiv uke, slik at de ikke kan fullføre hele sommeren på én kveld.
+// Appen bruker ISO-ukenummer automatisk. Før uke 26 vises uke 26. Etter uke 32 vises uke 32.
+// For testing kan du åpne GitHub Pages med ?uke=26, ?uke=27 osv.
+const FIRST_SUMMER_WEEK = 26;
+const LAST_SUMMER_WEEK = 32;
+
+function getISOWeekNumber(date){
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+}
+function getActiveWeekNumber(){
+  const params = new URLSearchParams(window.location.search);
+  const testWeek = Number(params.get('uke'));
+  if(testWeek >= FIRST_SUMMER_WEEK && testWeek <= LAST_SUMMER_WEEK) return testWeek;
+  const current = getISOWeekNumber(new Date());
+  return Math.max(FIRST_SUMMER_WEEK, Math.min(LAST_SUMMER_WEEK, current));
+}
+function isActiveWeek(weekNo){ return weekNo === getActiveWeekNumber(); }
+function weekOpenText(w){
+  const active = getActiveWeekNumber();
+  if(w.week === active) return 'Aktiv uke';
+  if(w.week < active) return 'Tidligere uke';
+  return 'Låst – åpner senere';
+}
+
 // 1) Lim inn Google Apps Script Web App URL her etter oppsett.
 // Eksempel: const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycb.../exec';
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzkxXjCG41Wb9fQfIVVqt8zLqdDs_j2IyJCARcfJiTVN8WXvJGpbRctwEXwFTfVqClEWg/exec';
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyRCFoKvjIYMcKpkG61sJMyLxyqNqhrG2lMbzNP5dEMyKbmVvpwvD8Tj1mmXt8Gar8-vg/exec';
 const TRAINER_PIN = '2014';
 
 let currentPlayer = localStorage.getItem('currentPlayer') || null;
@@ -195,19 +224,34 @@ function showHome(){
   hideAll(); $('homeScreen').classList.remove('hidden'); $('logoutBtn').classList.remove('hidden');
   $('welcomeText').textContent = `Hei ${currentPlayer}! 👋`;
   const done = doneWeeks();
-  $('teamStatus').textContent = `${levelText(done)}. Fullfør minst 3 av 6 øvelser per uke.`;
+  const activeWeek = getActiveWeekNumber();
+  $('teamStatus').textContent = `${levelText(done)}. Denne uka er uke ${activeWeek}. Fullfør minst 3 av 6 øvelser for å få uka godkjent.`;
   $('syncStatus').innerHTML = GOOGLE_SCRIPT_URL ? '✅ Registreringer sendes til trenerstatistikk.' : '<span class="warning">Google Sheets er ikke koblet til ennå. Registreringer lagres bare på denne telefonen.</span>';
-  $('weeksGrid').innerHTML = weeks.map(w => {
+
+  const active = weeks.find(w => w.week === activeWeek);
+  const activeCount = completedCount(currentPlayer, active.week);
+  const activeDone = activeCount >= 3;
+  const activeCard = `<button class="weekBtn active ${activeDone?'done':''}" onclick="openWeek(${active.week})"><span class="title">${active.emoji} Uke ${active.week} – ${active.theme} <span>${activeDone?'✅':'⬜'}</span></span><span class="subtitle">Aktiv uke · ${activeCount}/6 øvelser · ${activeDone?'Fullført':'minst 3 for godkjent'}</span></button>`;
+
+  const statusCards = weeks.map(w => {
     const c = completedCount(currentPlayer, w.week);
-    const done = c >= 3;
-    return `<button class="weekBtn ${done?'done':''}" onclick="openWeek(${w.week})"><span class="title">${w.emoji} Uke ${w.week} <span>${done?'✅':'⬜'}</span></span><span class="subtitle">${w.theme} · ${c}/6 øvelser · ${done?'Fullført':'minst 3 for godkjent'}</span></button>`;
+    const isDone = c >= 3;
+    const isActive = w.week === activeWeek;
+    if(isActive) return '';
+    return `<div class="weekStatus ${isDone?'done':''} ${w.week > activeWeek?'locked':''}"><span>${w.emoji} Uke ${w.week}</span><strong>${isDone?'✅ Fullført':(w.week > activeWeek?'🔒 Låst':'⬜ Ikke fullført')}</strong><small>${w.theme} · ${c}/6 · ${weekOpenText(w)}</small></div>`;
   }).join('');
+
+  $('weeksGrid').innerHTML = `<h3>Aktiv uke</h3>${activeCard}<h3>Ukeoversikt</h3><div class="statusGrid">${statusCards}</div>`;
 }
 function openWeek(weekNo){
+  if(!isActiveWeek(weekNo)){
+    alert('Denne uka er ikke aktiv ennå. Du kan bare registrere øvelser for aktiv uke.');
+    return;
+  }
   currentWeek = weeks.find(w => w.week === weekNo);
   hideAll(); $('weekScreen').classList.remove('hidden'); $('logoutBtn').classList.remove('hidden');
   $('weekTitle').textContent = `${currentWeek.emoji} Uke ${currentWeek.week} – ${currentWeek.theme}`;
-  $('weekHelp').textContent = 'Velg minst 3 av 6 øvelser. Trykk på «Les mer» for forklaring. Uka markeres automatisk som fullført når 3 er valgt.';
+  $('weekHelp').textContent = 'Dette er aktiv uke. Velg minst 3 av 6 øvelser. Trykk på «Les mer» for forklaring. Uka markeres automatisk som fullført når 3 er valgt.';
   renderTasks();
 }
 function renderTasks(){

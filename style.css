@@ -38,3 +38,34 @@
   line-height:1.45;
 }
 .secondary{background:#eef4ff;color:#16315c;border:1px solid #c9d9ff;margin-top:10px}.statsTable{width:100%;border-collapse:collapse;margin-top:10px}.statsTable th,.statsTable td{border-bottom:1px solid #e7eaf0;padding:10px;text-align:left;font-size:14px}.statsTable th{color:#526070}.pill{display:inline-block;padding:4px 9px;border-radius:999px;background:#eef4ff;font-size:12px}.warning{background:#fff6df;border:1px solid #ffe2a1;padding:10px;border-radius:12px}.ok{color:#0b7a3b;font-weight:700}.danger{color:#b42318;font-weight:700}.smallText{font-size:13px;color:#667085}.taskCard button.doneButton{margin-top:8px}.taskCard.checked .doneButton{background:#1f9d55}.configBox{background:#fff6df;border:1px solid #ffe2a1;border-radius:12px;padding:10px;margin-top:10px}
+
+.weekBtn.active {
+  border: 2px solid #20a464;
+  transform: scale(1.01);
+}
+.statusGrid {
+  display: grid;
+  gap: 10px;
+}
+.weekStatus {
+  background: #ffffff;
+  border: 1px solid #e4e7ec;
+  border-radius: 14px;
+  padding: 12px;
+  display: grid;
+  gap: 4px;
+}
+.weekStatus.done {
+  background: #eefbf4;
+  border-color: #9ee1bb;
+}
+.weekStatus.locked {
+  background: #f5f6f8;
+  color: #737b8c;
+}
+.weekStatus span {
+  font-weight: 800;
+}
+.weekStatus small {
+  color: #667085;
+}
