@@ -1,38 +1,40 @@
-:root {
-  --bg: #f4f8f5;
-  --card: #ffffff;
-  --text: #102116;
-  --muted: #5e6f64;
-  --accent: #1473e6;
-  --accent-dark: #074c9e;
-  --green: #16a34a;
-  --danger: #c0392b;
-  --border: #d7e3db;
+:root{--bg:#eef4f0;--card:#ffffff;--text:#13251d;--muted:#61736b;--brand:#167a3d;--brand2:#0f5d33;--border:#d9e3dd;--ok:#e6f7ec;--warn:#fff7df}*{box-sizing:border-box}body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text)}.app{max-width:760px;margin:0 auto;min-height:100vh;padding:14px}header{background:linear-gradient(135deg,#0d5b31,#17964b);color:#fff;border-radius:22px;padding:18px;margin-bottom:14px;display:flex;gap:12px;justify-content:space-between;align-items:flex-start}h1{font-size:24px;margin:0 0 6px}h2{margin:0 0 10px;font-size:22px}p{line-height:1.4}header p{margin:0;opacity:.9}.card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:18px;margin-bottom:14px;box-shadow:0 8px 20px rgba(0,0,0,.05)}label{display:block;font-weight:700;margin:14px 0 6px}select,input{width:100%;font-size:18px;padding:14px;border:1px solid var(--border);border-radius:14px;background:#fff}button{width:100%;border:0;border-radius:16px;background:var(--brand);color:#fff;font-size:18px;font-weight:700;padding:15px;margin-top:16px;cursor:pointer}.ghost{width:auto;background:#fff;color:var(--brand2);border:1px solid var(--border);padding:10px 13px;margin:0}.hidden{display:none!important}.muted{color:var(--muted);margin-top:0}.error{color:#b00020;font-weight:700}.welcome{background:#f7fff9}.teamStatus{font-weight:700;color:var(--brand2);margin-bottom:0}.weeks-grid{display:grid;grid-template-columns:1fr;gap:12px}.weekBtn{background:#fff;color:var(--text);border:1px solid var(--border);text-align:left;padding:16px;border-radius:18px;margin:0;box-shadow:0 4px 12px rgba(0,0,0,.04)}.weekBtn .title{font-size:19px;font-weight:800;display:flex;justify-content:space-between;gap:10px}.weekBtn .subtitle{display:block;margin-top:5px;color:var(--muted);font-size:15px}.weekBtn.done{background:var(--ok);border-color:#9bd9b2}.weekBtn.active{outline:3px solid rgba(22,122,61,.18)}.progressWrap{height:16px;background:#e8eee9;border-radius:999px;overflow:hidden;margin:12px 0}.progressBar{height:100%;width:0%;background:var(--brand);transition:width .2s}.progressText{font-weight:800;color:var(--brand2)}.tasks{display:grid;gap:10px;margin-top:14px}.task{display:flex;align-items:flex-start;gap:12px;background:#f8faf8;border:1px solid var(--border);border-radius:16px;padding:14px;font-size:17px}.task input{width:24px;height:24px;flex:0 0 auto;margin:0}.task span{line-height:1.3}.completedBox{background:var(--ok);border:1px solid #9bd9b2;border-radius:16px;padding:16px;margin-top:16px;text-align:center;font-weight:900;font-size:20px}@media(min-width:650px){.weeks-grid{grid-template-columns:1fr 1fr}}
+
+.taskCard{
+  background:#fff;
+  border:1px solid #e6edf5;
+  border-radius:16px;
+  padding:12px;
+  margin:10px 0;
+  box-shadow:0 4px 12px rgba(0,0,0,.04);
 }
-* { box-sizing: border-box; }
-body { margin: 0; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
-.app { width: min(100%, 620px); margin: 0 auto; padding: 16px; }
-.hero { background: linear-gradient(135deg, #08264a, #1473e6); color: white; border-radius: 24px; padding: 24px; margin-bottom: 16px; }
-.badge { display: inline-block; background: rgba(255,255,255,0.18); border-radius: 999px; padding: 7px 13px; font-weight: 800; }
-h1 { margin: 10px 0 4px; font-size: 34px; }
-h2 { margin: 0 0 14px; font-size: 20px; }
-p { line-height: 1.45; }
-.card { background: var(--card); border-radius: 20px; padding: 18px; margin-bottom: 14px; box-shadow: 0 8px 24px rgba(0,0,0,0.06); }
-.button-grid { display: grid; gap: 10px; }
-.button-grid.two { grid-template-columns: 1fr 1fr; }
-.choice { width: 100%; border: 2px solid var(--border); background: #fff; color: var(--text); border-radius: 16px; padding: 15px; font-size: 18px; font-weight: 800; text-align: left; cursor: pointer; }
-.choice small { display: block; font-weight: 600; color: var(--muted); margin-top: 3px; }
-.choice.active { border-color: var(--accent); background: #eaf3ff; color: var(--accent-dark); }
-.exercise-list label { display: flex; gap: 12px; align-items: flex-start; font-weight: 650; padding: 13px 0; border-bottom: 1px solid #edf2ef; }
-.exercise-list input { width: 24px; height: 24px; flex: none; }
-button { width: 100%; font-size: 18px; border-radius: 16px; padding: 15px; border: 0; font-weight: 900; cursor: pointer; }
-.primary { background: var(--green); color: white; margin-top: 16px; }
-.secondary { background: #30475e; color: white; margin-top: 8px; }
-.danger { background: var(--danger); color: white; margin-top: 8px; }
-button:active { transform: scale(0.99); }
-.message { font-weight: 900; color: #166534; }
-.intro { background: #eef6ff; border: 1px solid #cfe5ff; padding: 12px; border-radius: 14px; }
-.status-number { font-size: 42px; font-weight: 950; color: var(--accent-dark); }
-summary { font-weight: 800; cursor: pointer; }
-ul { padding-left: 20px; }
-@media (max-width: 420px) { .button-grid.two { grid-template-columns: 1fr; } h1 { font-size: 29px; } }
+.taskCard.checked{
+  border-color:#27ae60;
+  background:#f1fff6;
+}
+.taskHeader{
+  align-items:flex-start;
+}
+.taskHeader small{
+  color:#516173;
+  line-height:1.35;
+}
+.smallBtn{
+  margin-top:8px;
+  width:auto;
+  padding:8px 12px;
+  border-radius:10px;
+  border:1px solid #d4dde8;
+  background:#f8fafc;
+  color:#24364b;
+  font-weight:700;
+}
+.taskDetails{
+  margin-top:10px;
+  padding:12px;
+  border-radius:12px;
+  background:#eef5ff;
+  color:#223044;
+  line-height:1.45;
+}
+.secondary{background:#eef4ff;color:#16315c;border:1px solid #c9d9ff;margin-top:10px}.statsTable{width:100%;border-collapse:collapse;margin-top:10px}.statsTable th,.statsTable td{border-bottom:1px solid #e7eaf0;padding:10px;text-align:left;font-size:14px}.statsTable th{color:#526070}.pill{display:inline-block;padding:4px 9px;border-radius:999px;background:#eef4ff;font-size:12px}.warning{background:#fff6df;border:1px solid #ffe2a1;padding:10px;border-radius:12px}.ok{color:#0b7a3b;font-weight:700}.danger{color:#b42318;font-weight:700}.smallText{font-size:13px;color:#667085}.taskCard button.doneButton{margin-top:8px}.taskCard.checked .doneButton{background:#1f9d55}.configBox{background:#fff6df;border:1px solid #ffe2a1;border-radius:12px;padding:10px;margin-top:10px}

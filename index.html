@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="no">
 <head>
   <meta charset="UTF-8" />
@@ -7,52 +7,82 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <main class="app">
-    <header class="hero">
-      <div class="badge">⚽ Gutter 2014</div>
-      <h1>Sommertrening 2025</h1>
-      <p>Velg navn, uke og trening. Kryss av og registrer fullført.</p>
+  <div class="app">
+    <header>
+      <div>
+        <h1>⚽ Sommertrening G2014</h1>
+        <p>Velg minst 3 øvelser per uke for å fullføre.</p>
+      </div>
+      <button id="logoutBtn" class="ghost hidden">Logg ut</button>
     </header>
 
-    <section class="card">
-      <h2>1. Velg navn</h2>
-      <div id="playerButtons" class="button-grid"></div>
-    </section>
+    <main>
+      <section id="startScreen" class="card">
+        <h2>Velkommen</h2>
+        <p class="muted">Velg om du skal registrere trening eller se trenerstatistikk.</p>
+        <button id="playerModeBtn">Spiller</button>
+        <button id="trainerModeBtn" class="secondary">Trenerstatistikk</button>
+      </section>
 
-    <section class="card">
-      <h2>2. Velg uke</h2>
-      <div id="weekButtons" class="button-grid"></div>
-    </section>
+      <section id="loginScreen" class="card hidden">
+        <button id="backToStartBtn" class="ghost">← Tilbake</button>
+        <h2>Spillerinnlogging</h2>
+        <p class="muted">Velg spiller og skriv PIN-kode.</p>
+        <label>Spiller</label>
+        <select id="playerSelect"></select>
+        <label>PIN</label>
+        <input id="pinInput" type="password" inputmode="numeric" maxlength="4" placeholder="4 siffer" />
+        <button id="loginBtn">Start</button>
+        <p id="loginError" class="error"></p>
+      </section>
 
-    <section class="card">
-      <h2>3. Velg trening</h2>
-      <div id="sessionButtons" class="button-grid two"></div>
-    </section>
+      <section id="trainerLoginScreen" class="card hidden">
+        <button id="backToStartTrainerBtn" class="ghost">← Tilbake</button>
+        <h2>Trenerinnlogging</h2>
+        <p class="muted">Skriv trener-PIN for å se oversikt.</p>
+        <label>Trener-PIN</label>
+        <input id="trainerPinInput" type="password" inputmode="numeric" maxlength="4" placeholder="4 siffer" />
+        <button id="trainerLoginBtn">Åpne statistikk</button>
+        <p id="trainerLoginError" class="error"></p>
+      </section>
 
-    <section class="card">
-      <h2 id="sessionTitle"></h2>
-      <p id="sessionIntro" class="intro"></p>
-      <div id="exerciseList" class="exercise-list"></div>
-      <button id="completeBtn" class="primary">✅ Registrer fullført</button>
-      <p id="message" class="message"></p>
-    </section>
+      <section id="homeScreen" class="hidden">
+        <div class="card welcome">
+          <h2 id="welcomeText"></h2>
+          <p id="teamStatus" class="teamStatus"></p>
+          <p id="syncStatus" class="muted"></p>
+        </div>
+        <div id="weeksGrid" class="weeks-grid"></div>
+      </section>
 
-    <section class="card status-card">
-      <h2>Status valgt uke</h2>
-      <div class="status-number"><span id="completedCount">0</span> av <span id="totalPlayers">0</span></div>
-      <p>spillere har registrert minst én trening denne uka.</p>
-      <details open>
-        <summary>Hvem har fullført?</summary>
-        <ul id="completedPlayers"></ul>
-      </details>
-    </section>
+      <section id="weekScreen" class="hidden">
+        <button id="backBtn" class="ghost">← Tilbake</button>
+        <div class="card">
+          <h2 id="weekTitle"></h2>
+          <p id="weekHelp" class="muted"></p>
+          <div class="progressWrap"><div id="progressBar" class="progressBar"></div></div>
+          <p id="progressText" class="progressText"></p>
+          <div id="tasksList" class="tasks"></div>
+          <div id="completedBox" class="completedBox hidden">🎉 Uka er fullført!</div>
+        </div>
+      </section>
 
-    <section class="card coach-card">
-      <h2>Trener</h2>
-      <button id="exportBtn" class="secondary">Last ned registreringer CSV</button>
-      <button id="resetBtn" class="danger">Nullstill testdata</button>
-    </section>
-  </main>
+      <section id="trainerScreen" class="hidden">
+        <button id="trainerBackBtn" class="ghost">← Tilbake</button>
+        <div class="card">
+          <h2>📊 Trenerstatistikk</h2>
+          <p id="trainerSyncStatus" class="muted"></p>
+          <button id="refreshStatsBtn">Oppdater statistikk</button>
+        </div>
+        <div id="statsSummary" class="card"></div>
+        <div id="weekStats" class="card"></div>
+        <div id="playerStats" class="card"></div>
+        <div id="notStartedStats" class="card"></div>
+      </section>
+    </main>
+  </div>
+
+  <iframe name="hiddenSubmitFrame" id="hiddenSubmitFrame" class="hidden"></iframe>
   <script src="app.js"></script>
 </body>
 </html>
