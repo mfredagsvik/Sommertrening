@@ -295,12 +295,13 @@ function renderTeamGoalCard(totalExercises, activePlayersThisWeek){
   </div>`;
 }
 function hideAll(){
-  ['startScreen','loginScreen','trainerLoginScreen','homeScreen','weekScreen','trainerScreen'].forEach(id => $(id).classList.add('hidden'));
+  ['startScreen','loginScreen','trainerLoginScreen','homeScreen','weekScreen','trainerScreen','statsScreen'].forEach(id => $(id).classList.add('hidden'));
 }
 function init(){
   $('playerSelect').innerHTML = players.map(p => `<option value="${p.name}">${p.name}</option>`).join('');
   $('playerModeBtn').onclick = showLogin;
   $('trainerModeBtn').onclick = showTrainerLogin;
+  $('publicStatsBtn').onclick = showPublicStats;
   $('backToStartBtn').onclick = showStart;
   $('backToStartTrainerBtn').onclick = showStart;
   $('loginBtn').onclick = login;
@@ -308,6 +309,7 @@ function init(){
   $('logoutBtn').onclick = logout;
   $('backBtn').onclick = showHome;
   $('trainerBackBtn').onclick = showStart;
+  $('statsBackBtn').onclick = showStart;
   $('refreshStatsBtn').onclick = loadTrainerStats;
   if($('saveOpenWeeksBtn')) $('saveOpenWeeksBtn').onclick = saveTrainerOpenWeeks;
   syncRemoteSettings().finally(() => { if(currentPlayer) showHome(); else showStart(); });
@@ -576,6 +578,77 @@ function renderTrainerStats(matrix){
   const notStarted = playerStats.filter(p => p.exercises === 0).map(p => p.name);
   $('notStartedStats').innerHTML = `<h3>Ikke startet</h3>${notStarted.length ? `<p class="smallText">Disse har ikke registrert noen øvelser ennå:</p><p>${notStarted.join('<br>')}</p>` : '<p class="ok">Alle har startet! 🎉</p>'}`;
 }
+
+
+async function showPublicStats(){
+  hideAll();
+  $('statsScreen').classList.remove('hidden');
+  $('logoutBtn').classList.add('hidden');
+  $('publicStatsSummary').innerHTML = '<p>Laster statistikk...</p>';
+  let matrix;
+  if(GOOGLE_SCRIPT_URL){
+    const logs = await loadLogsFromGoogle();
+    matrix = logs ? applyLogsToMatrix(logs) : matrixFromLocal();
+  } else {
+    matrix = matrixFromLocal();
+  }
+  renderPublicStats(matrix);
+}
+
+function renderPublicStats(matrix){
+  const activeWeek = getActiveWeekNumber();
+  const playerStats = players.map(p => {
+    const exercises = weeks.reduce((sum, w) => sum + matrix[p.name][w.week].size, 0);
+    const weeksDone = weeks.filter(w => matrix[p.name][w.week].size >= 3).length;
+    const activeExercises = matrix[p.name][activeWeek] ? matrix[p.name][activeWeek].size : 0;
+    return { name:p.name, exercises, weeksDone, activeExercises };
+  });
+
+  const totalExercises = playerStats.reduce((sum,p)=>sum+p.exercises,0);
+  const pct = Math.min(100, Math.round((totalExercises / TEAM_EXERCISE_GOAL) * 100));
+  const activePlayers = playerStats.filter(p => p.activeExercises > 0).length;
+
+  const bronze = playerStats.filter(p => p.exercises >= BRONZE_EXERCISES && p.exercises < SILVER_EXERCISES).length;
+  const silver = playerStats.filter(p => p.exercises >= SILVER_EXERCISES && p.exercises < GOLD_EXERCISES).length;
+  const gold = playerStats.filter(p => p.exercises >= GOLD_EXERCISES && p.exercises < SUMMERMASTER_EXERCISES).length;
+  const master = playerStats.filter(p => p.exercises >= SUMMERMASTER_EXERCISES).length;
+
+  $('publicStatsSummary').innerHTML = `
+    <h3>🎁 Hemmelig sommeroppdrag</h3>
+    <p class="bigStat"><strong>${totalExercises}</strong> / ${TEAM_EXERCISE_GOAL} øvelser</p>
+    <div class="progressWrap"><div class="progressBar" style="width:${pct}%"></div></div>
+    <p><strong>${pct}%</strong> av lagmålet</p>
+    <div class="cleanStatsGrid">
+      <div><strong>${players.length}</strong><span>spillere</span></div>
+      <div><strong>${activePlayers}</strong><span>aktive denne uka</span></div>
+      <div><strong>${activeWeek}</strong><span>aktiv uke</span></div>
+    </div>
+  `;
+
+  $('publicWeekStats').innerHTML = `<h3>📅 Uker</h3>
+    <div class="cleanWeekList">
+      ${weeks.map(w => {
+        const exerciseCount = players.reduce((sum,p)=>sum + matrix[p.name][w.week].size,0);
+        const doneCount = players.filter(p => matrix[p.name][w.week].size >= 3).length;
+        const open = isWeekOpen(w.week);
+        return `<div class="cleanWeekRow ${open?'open':''}">
+          <div><strong>${w.emoji} Uke ${w.week} – ${w.theme}</strong><small>${weekDateText(w.week)}</small></div>
+          <div><strong>${exerciseCount}</strong><small>øvelser</small></div>
+          <div><strong>${doneCount}/${players.length}</strong><small>godkjent</small></div>
+        </div>`;
+      }).join('')}
+    </div>`;
+
+  $('publicMedalStats').innerHTML = `<h3>🏅 Merker</h3>
+    <div class="cleanStatsGrid">
+      <div><strong>${bronze}</strong><span>🥉 Bronse</span></div>
+      <div><strong>${silver}</strong><span>🥈 Sølv</span></div>
+      <div><strong>${gold}</strong><span>🥇 Gull</span></div>
+      <div><strong>${master}</strong><span>👑 Sommermester</span></div>
+    </div>
+    <p class="smallText">Statistikken viser lagstatus uten rangering av enkeltspillere.</p>`;
+}
+
 
 // Medaljer beregnes nå fra antall fullførte øvelser, ikke antall uker.
 

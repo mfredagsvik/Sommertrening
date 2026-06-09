@@ -4,14 +4,14 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Utleira G2014 - Sommertrening</title>
-  <link rel="icon" type="image/svg+xml" href="utleira-logo.svg" />
+  <link rel="icon" type="image/svg+xml" href="utleira-logo.png" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div class="app">
     <header>
       <div class="brandHeader">
-        <img src="utleira-logo.svg" alt="Utleira IL" class="clubLogo" />
+        <img src="utleira-logo.png" alt="Utleira IL" class="clubLogo" />
         <div>
           <h1>Sommertrening G2014</h1>
           <p>Utleira IL · Velg minst 3 øvelser per uke for å fullføre.</p>
@@ -21,45 +21,37 @@
     </header>
 
     <main>
+
       
-
 <section id="startScreen" class="card startMission">
-  <h2>⚽ UTLEIRA G2014</h2>
-  <h3>SOMMEROPPDRAG 2025</h3>
+<h2>⚽ UTLEIRA G2014</h2>
+<h3>SOMMEROPPDRAG 2025</h3>
 
-  <div class="missionBox">
-    <h3>🕵️ VIKTIG MELDING</h3>
+<div class="missionBox">
+<p style="font-size:24px;font-weight:800;">🕵️ DU HAR BLITT INVITERT</p>
 
-    <p>Trenerne har mottatt et hemmelig oppdrag.</p>
-    <p>Oppdraget er nå gitt videre til spillerne.</p>
+<p>til Utleira G2014 sitt sommeroppdrag.</p>
 
-    <hr>
+<hr>
 
-    <p>For å lykkes må laget samarbeide og fullføre:</p>
+<p><strong>🎯 Oppdrag</strong></p>
+<h2>300 ØVELSER</h2>
 
-    <h2>🎯 300 ØVELSER</h2>
+<p>før første trening etter ferien.</p>
 
-    <p>før første trening etter ferien.</p>
+<hr>
 
-    <p>
-      Hver øvelse du gjennomfører<br>
-      hjelper laget nærmere målet.
-    </p>
+<p><strong>🎁 Belønning</strong></p>
+<h2>HEMMELIG</h2>
 
-    <hr>
+<hr>
 
-    <p>
-      Hvis oppdraget lykkes,<br>
-      låses en hemmelig belønning opp.
-    </p>
+<p class="missionQuestion">❓ Klarer laget oppdraget?</p>
+</div>
 
-    <p class="secretStatus">🔒 Belønning: KLASSIFISERT</p>
-
-    <p class="missionQuestion">❓ Klarer Utleira G2014 oppdraget?</p>
-  </div>
-
-  <button id="playerModeBtn">🚀 JEG ER KLAR FOR OPPDRAGET</button>
-  <button id="trainerModeBtn" class="secondary">🔒 Trener</button>
+<button id="playerModeBtn">🚀 BLI MED</button>
+<button id="publicStatsBtn" class="secondary">📊 Statistikk</button>
+<button id="trainerModeBtn" class="secondary">🔒 Trener</button>
 </section>
 
 
@@ -106,6 +98,18 @@
           <div id="tasksList" class="tasks"></div>
           <div id="completedBox" class="completedBox hidden">🎉 Uka er fullført!</div>
         </div>
+      </section>
+
+
+      <section id="statsScreen" class="hidden">
+        <button id="statsBackBtn" class="ghost">← Tilbake</button>
+        <div class="card statsHero">
+          <h2>📊 Statistikk</h2>
+          <p class="muted">Ren oversikt over lagets sommeroppdrag.</p>
+        </div>
+        <div id="publicStatsSummary" class="card"></div>
+        <div id="publicWeekStats" class="card"></div>
+        <div id="publicMedalStats" class="card"></div>
       </section>
 
       <section id="trainerScreen" class="hidden">
