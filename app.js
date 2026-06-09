@@ -132,38 +132,112 @@ const weeks = [
 
 
 // Ukevisning for spillerne:
-// Spillerne får bare åpne aktiv uke, slik at de ikke kan fullføre hele sommeren på én kveld.
-// Appen bruker ISO-ukenummer automatisk. Før uke 26 vises uke 26. Etter uke 32 vises uke 32.
+// Spillerne får bare åpne uker som trenerne har huket av i trenerpanelet.
+// Før trenerne har lagret egne valg, åpnes uker automatisk etter startdato.
 // For testing kan du åpne GitHub Pages med ?uke=26, ?uke=27 osv.
 const FIRST_SUMMER_WEEK = 26;
 const LAST_SUMMER_WEEK = 32;
 
-function getISOWeekNumber(date){
-  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-  const dayNum = d.getUTCDay() || 7;
-  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-  return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+// Datoer for sommertreningen 2025.
+const WEEK_DATES = {
+  26: { start: '2025-06-23', end: '2025-06-29' },
+  27: { start: '2025-06-30', end: '2025-07-06' },
+  28: { start: '2025-07-07', end: '2025-07-13' },
+  29: { start: '2025-07-14', end: '2025-07-20' },
+  30: { start: '2025-07-21', end: '2025-07-27' },
+  31: { start: '2025-07-28', end: '2025-08-03' },
+  32: { start: '2025-08-04', end: '2025-08-10' }
+};
+
+function parseLocalDate(iso){
+  const [y,m,d] = iso.split('-').map(Number);
+  return new Date(y, m - 1, d);
 }
-function getActiveWeekNumber(){
+function formatNorDate(iso){
+  return parseLocalDate(iso).toLocaleDateString('no-NO', { day: 'numeric', month: 'long' });
+}
+function weekDateText(weekNo){
+  const d = WEEK_DATES[weekNo];
+  return d ? `${formatNorDate(d.start)} – ${formatNorDate(d.end)}` : '';
+}
+function daysUntil(iso){
+  const today = new Date();
+  const startToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  return Math.ceil((parseLocalDate(iso) - startToday) / 86400000);
+}
+let remoteOpenWeeks = null;
+
+function autoOpenWeeksByDate(){
+  const today = new Date();
+  const opened = [];
+  weeks.forEach(w => {
+    const d = WEEK_DATES[w.week];
+    if(d && today >= parseLocalDate(d.start)) opened.push(w.week);
+  });
+  return opened.length ? opened : [FIRST_SUMMER_WEEK];
+}
+function getUrlWeekOverride(){
   const params = new URLSearchParams(window.location.search);
   const testWeek = Number(params.get('uke'));
-  if(testWeek >= FIRST_SUMMER_WEEK && testWeek <= LAST_SUMMER_WEEK) return testWeek;
-  const current = getISOWeekNumber(new Date());
-  return Math.max(FIRST_SUMMER_WEEK, Math.min(LAST_SUMMER_WEEK, current));
+  return (testWeek >= FIRST_SUMMER_WEEK && testWeek <= LAST_SUMMER_WEEK) ? testWeek : null;
 }
-function isActiveWeek(weekNo){ return weekNo === getActiveWeekNumber(); }
+function normalizeWeeks(arr){
+  return [...new Set((arr || []).map(Number).filter(n => n >= FIRST_SUMMER_WEEK && n <= LAST_SUMMER_WEEK))].sort((a,b)=>a-b);
+}
+function getOpenWeeks(){
+  const urlWeek = getUrlWeekOverride();
+  if(urlWeek) return [urlWeek];
+  if(Array.isArray(remoteOpenWeeks) && remoteOpenWeeks.length) return normalizeWeeks(remoteOpenWeeks);
+  const saved = localStorage.getItem('trainerOpenWeeks');
+  if(saved){
+    try { return normalizeWeeks(JSON.parse(saved)); } catch(e) {}
+  }
+  return autoOpenWeeksByDate();
+}
+function getActiveWeekNumber(){
+  const open = getOpenWeeks();
+  if(open.length) return Math.max(...open);
+  return FIRST_SUMMER_WEEK;
+}
+function isWeekOpen(weekNo){ return getOpenWeeks().includes(Number(weekNo)); }
 function weekOpenText(w){
+  const d = WEEK_DATES[w.week];
+  const open = isWeekOpen(w.week);
   const active = getActiveWeekNumber();
-  if(w.week === active) return 'Aktiv uke';
-  if(w.week < active) return 'Tidligere uke';
-  return 'Låst – åpner senere';
+  if(open && w.week === active) return 'Åpen – aktiv uke';
+  if(open) return 'Åpen';
+  if(!d) return 'Låst';
+  const left = daysUntil(d.start);
+  return left > 0 ? `Låst – planlagt ${formatNorDate(d.start)} (${left} dager)` : `Låst – åpnes av trener`;
+}
+function nextWeekInfo(){
+  const open = getOpenWeeks();
+  const maxOpen = open.length ? Math.max(...open) : FIRST_SUMMER_WEEK - 1;
+  const next = weeks.find(w => w.week > maxOpen);
+  if(!next) return null;
+  const d = WEEK_DATES[next.week];
+  const left = d ? daysUntil(d.start) : null;
+  return { week: next, date: d, days: left };
+}
+function activeWeekInfoText(){
+  const open = getOpenWeeks();
+  const active = getActiveWeekNumber();
+  const next = nextWeekInfo();
+  const openText = open.length ? `Åpne uker: ${open.map(w => 'Uke ' + w).join(', ')}. Aktiv visning: Uke ${active} (${weekDateText(active)})` : 'Ingen uker er åpnet.';
+  if(!next || !next.date) return openText;
+  const countdown = next.days > 0 ? `Planlagt om ${next.days} dager` : 'Kan åpnes nå';
+  return `${openText}. Neste uke: Uke ${next.week.week} åpner ${formatNorDate(next.date.start)} – ${countdown}.`;
 }
 
 // 1) Lim inn Google Apps Script Web App URL her etter oppsett.
 // Eksempel: const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycb.../exec';
 const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyRCFoKvjIYMcKpkG61sJMyLxyqNqhrG2lMbzNP5dEMyKbmVvpwvD8Tj1mmXt8Gar8-vg/exec';
 const TRAINER_PIN = '2014';
+const TEAM_EXERCISE_GOAL = 300;
+const BRONZE_EXERCISES = 10;
+const SILVER_EXERCISES = 20;
+const GOLD_EXERCISES = 30;
+const SUMMERMASTER_EXERCISES = 42;
 
 let currentPlayer = localStorage.getItem('currentPlayer') || null;
 let currentWeek = null;
@@ -176,12 +250,49 @@ function getSavedTasks(player, week){ return JSON.parse(localStorage.getItem(key
 function saveTasks(player, week, arr){ localStorage.setItem(key(player, week), JSON.stringify(arr)); }
 function completedCount(player, week){ return getSavedTasks(player, week).length; }
 function isWeekDone(player, week){ return completedCount(player, week) >= 3; }
-function doneWeeks(){ return weeks.filter(w => isWeekDone(currentPlayer, w.week)).length; }
-function levelText(done){
-  if(done >= 7) return '🥇 Gull – alle 7 uker fullført!';
-  if(done >= 5) return `🥈 Sølv – ${done} av 7 uker fullført`;
-  if(done >= 3) return `🥉 Bronse – ${done} av 7 uker fullført`;
-  return `Status: Bronsejakt! ${done} av 7 uker fullført`;
+function doneWeeks(player = currentPlayer){ return weeks.filter(w => isWeekDone(player, w.week)).length; }
+function totalExercises(player = currentPlayer){ return weeks.reduce((sum, w) => sum + completedCount(player, w.week), 0); }
+function exerciseLevelText(count){
+  if(count >= SUMMERMASTER_EXERCISES) return `👑 Sommermester – ${count} av 42 øvelser fullført!`;
+  if(count >= GOLD_EXERCISES) return `🥇 Gull – ${count} øvelser fullført`;
+  if(count >= SILVER_EXERCISES) return `🥈 Sølv – ${count} øvelser fullført`;
+  if(count >= BRONZE_EXERCISES) return `🥉 Bronse – ${count} øvelser fullført`;
+  return `Status: Bronsejakt! ${count}/${BRONZE_EXERCISES} øvelser`;
+}
+function exerciseLevelBadge(count){
+  if(count >= SUMMERMASTER_EXERCISES) return '<span class="pill">👑 Sommermester</span>';
+  if(count >= GOLD_EXERCISES) return '<span class="pill">🥇 Gull</span>';
+  if(count >= SILVER_EXERCISES) return '<span class="pill">🥈 Sølv</span>';
+  if(count >= BRONZE_EXERCISES) return '<span class="pill">🥉 Bronse</span>';
+  if(count > 0) return '<span class="pill">I gang</span>';
+  return '<span class="pill">Ikke startet</span>';
+}
+
+function allLocalTotalExercises(){
+  return players.reduce((sum, p) => sum + weeks.reduce((wSum, w) => wSum + getSavedTasks(p.name, w.week).length, 0), 0);
+}
+function localActivePlayersThisWeek(){
+  const activeWeek = getActiveWeekNumber();
+  return players.filter(p => getSavedTasks(p.name, activeWeek).length > 0).length;
+}
+function secretRewardMessage(totalExercises){
+  if(totalExercises >= TEAM_EXERCISE_GOAL){
+    return `🎉 GRATULERER!<br><br>Dere klarte det! ⚽🔥<br><br>Gjennom hele sommeren har dere samlet nok øvelser til å låse opp den hemmelige belønningen.<br><br>🎁 Hva er premien?<br><br>Det får dere vite på første trening etter ferien...<br><br>Vi sees på banen!`;
+  }
+  const remaining = Math.max(0, TEAM_EXERCISE_GOAL - totalExercises);
+  return `🎁 Hemmelig belønning<br><span class="smallText">${remaining} øvelser igjen. Kun trenerne vet hva belønningen er 🤫</span>`;
+}
+function renderTeamGoalCard(totalExercises, activePlayersThisWeek){
+  const pct = Math.min(100, Math.round((totalExercises / TEAM_EXERCISE_GOAL) * 100));
+  const reached = totalExercises >= TEAM_EXERCISE_GOAL;
+  return `<div class="card secretCard ${reached ? 'goalReached' : ''}">
+    <h3>🎁 Hemmelig sommeroppdrag</h3>
+    <p><strong>${totalExercises}</strong> av <strong>${TEAM_EXERCISE_GOAL}</strong> øvelser fullført av laget</p>
+    <div class="progressWrap"><div class="progressBar" style="width:${pct}%"></div></div>
+    <p><strong>${pct}%</strong> av lagmålet</p>
+    <p>${secretRewardMessage(totalExercises)}</p>
+    <p>🔥 <strong>${activePlayersThisWeek}</strong> av ${players.length} spillere har vært aktive denne uka</p>
+  </div>`;
 }
 function hideAll(){
   ['startScreen','loginScreen','trainerLoginScreen','homeScreen','weekScreen','trainerScreen'].forEach(id => $(id).classList.add('hidden'));
@@ -198,7 +309,8 @@ function init(){
   $('backBtn').onclick = showHome;
   $('trainerBackBtn').onclick = showStart;
   $('refreshStatsBtn').onclick = loadTrainerStats;
-  if(currentPlayer) showHome(); else showStart();
+  if($('saveOpenWeeksBtn')) $('saveOpenWeeksBtn').onclick = saveTrainerOpenWeeks;
+  syncRemoteSettings().finally(() => { if(currentPlayer) showHome(); else showStart(); });
 }
 function showStart(){ hideAll(); $('startScreen').classList.remove('hidden'); $('logoutBtn').classList.add('hidden'); }
 function showLogin(){ hideAll(); $('loginScreen').classList.remove('hidden'); $('logoutBtn').classList.add('hidden'); }
@@ -219,39 +331,80 @@ function trainerLogin(){
   $('trainerPinInput').value=''; $('trainerLoginError').textContent='';
   showTrainerDashboard();
 }
+function saveTrainerOpenWeeks(){
+  const checks = Array.from(document.querySelectorAll('.openWeekCheck'));
+  const selected = checks.filter(c => c.checked).map(c => Number(c.value));
+  if(selected.length === 0){
+    $('overrideStatus').innerHTML = '<span class="danger">Minst én uke må være åpen.</span>';
+    return;
+  }
+  const openWeeks = normalizeWeeks(selected);
+  localStorage.setItem('trainerOpenWeeks', JSON.stringify(openWeeks));
+  remoteOpenWeeks = openWeeks;
+  $('overrideStatus').innerHTML = `<span class="ok">Lagret åpne uker: ${openWeeks.map(w => 'Uke ' + w).join(', ')}.</span>`;
+  sendOpenWeeksToGoogle(openWeeks);
+  renderTrainerControls();
+  loadTrainerStats();
+}
+function renderTrainerControls(){
+  if(!$('openWeeksControl')) return;
+  const openWeeks = getOpenWeeks();
+  $('activeWeekInfo').textContent = activeWeekInfoText();
+  $('openWeeksControl').innerHTML = weeks.map(w => {
+    const checked = openWeeks.includes(w.week) ? 'checked' : '';
+    const active = w.week === getActiveWeekNumber() && checked ? 'activeOpenWeek' : '';
+    return `<label class="openWeekItem ${active}">
+      <input class="openWeekCheck" type="checkbox" value="${w.week}" ${checked}>
+      <span><strong>${w.emoji} Uke ${w.week} – ${w.theme}</strong><small>${weekDateText(w.week)}</small><small>${checked ? 'Åpen for spillerne' : 'Låst for spillerne'}</small></span>
+    </label>`;
+  }).join('');
+  const source = Array.isArray(remoteOpenWeeks) ? 'Google Sheets' : (localStorage.getItem('trainerOpenWeeks') ? 'denne enheten' : 'automatisk dato-styring');
+  $('overrideStatus').textContent = `Ukeåpning hentes fra ${source}. Huk av uker og trykk Lagre for å endre.`;
+}
+
 function logout(){ localStorage.removeItem('currentPlayer'); currentPlayer=null; showStart(); }
 function showHome(){
   hideAll(); $('homeScreen').classList.remove('hidden'); $('logoutBtn').classList.remove('hidden');
   $('welcomeText').textContent = `Hei ${currentPlayer}! 👋`;
   const done = doneWeeks();
+  const exercises = totalExercises();
   const activeWeek = getActiveWeekNumber();
-  $('teamStatus').textContent = `${levelText(done)}. Denne uka er uke ${activeWeek}. Fullfør minst 3 av 6 øvelser for å få uka godkjent.`;
-  $('syncStatus').innerHTML = GOOGLE_SCRIPT_URL ? '✅ Registreringer sendes til trenerstatistikk.' : '<span class="warning">Google Sheets er ikke koblet til ennå. Registreringer lagres bare på denne telefonen.</span>';
+  $('teamStatus').innerHTML = `${exerciseLevelText(exercises)}<br><span class="smallText">${done}/7 uker godkjent. ${activeWeekInfoText()} Fullfør minst 3 av 6 øvelser for å få uka godkjent.</span>`;
+  $('syncStatus').innerHTML = GOOGLE_SCRIPT_URL ? '✅ Registreringer sendes til trenerstatistikk.' : '<span class="warning">Google Sheets er ikke koblet til ennå. Lagmålet under viser bare registreringer på denne enheten til Google Sheets kobles til.</span>';
 
-  const active = weeks.find(w => w.week === activeWeek);
-  const activeCount = completedCount(currentPlayer, active.week);
-  const activeDone = activeCount >= 3;
-  const activeCard = `<button class="weekBtn active ${activeDone?'done':''}" onclick="openWeek(${active.week})"><span class="title">${active.emoji} Uke ${active.week} – ${active.theme} <span>${activeDone?'✅':'⬜'}</span></span><span class="subtitle">Aktiv uke · ${activeCount}/6 øvelser · ${activeDone?'Fullført':'minst 3 for godkjent'}</span></button>`;
+  const teamExercises = allLocalTotalExercises();
+  const activePlayers = localActivePlayersThisWeek();
+  const teamGoalCard = renderTeamGoalCard(teamExercises, activePlayers);
+
+  const openWeeks = getOpenWeeks();
+  const openCards = weeks.filter(w => openWeeks.includes(w.week)).map(w => {
+    const c = completedCount(currentPlayer, w.week);
+    const done = c >= 3;
+    const activeCls = w.week === activeWeek ? 'active' : '';
+    return `<button class="weekBtn ${activeCls} ${done?'done':''}" onclick="openWeek(${w.week})"><span class="title">${w.emoji} Uke ${w.week} – ${w.theme} <span>${done?'✅':'⬜'}</span></span><span class="dateLine">${weekDateText(w.week)}</span><span class="subtitle">✅ Åpen · ${c}/6 øvelser · ${done?'Fullført':'minst 3 for godkjent'}</span></button>`;
+  }).join('') || '<div class="card"><p>Ingen uker er åpnet ennå.</p></div>';
 
   const statusCards = weeks.map(w => {
     const c = completedCount(currentPlayer, w.week);
     const isDone = c >= 3;
-    const isActive = w.week === activeWeek;
-    if(isActive) return '';
-    return `<div class="weekStatus ${isDone?'done':''} ${w.week > activeWeek?'locked':''}"><span>${w.emoji} Uke ${w.week}</span><strong>${isDone?'✅ Fullført':(w.week > activeWeek?'🔒 Låst':'⬜ Ikke fullført')}</strong><small>${w.theme} · ${c}/6 · ${weekOpenText(w)}</small></div>`;
+    const isOpen = openWeeks.includes(w.week);
+    return `<div class="weekStatus ${isDone?'done':''} ${!isOpen?'locked':''}"><span>${w.emoji} Uke ${w.week} – ${w.theme}</span><strong>${isDone?'✅ Fullført':(isOpen?'⬜ Åpen':'🔒 Låst')}</strong><small>${weekDateText(w.week)}</small><small>${c}/6 · ${weekOpenText(w)}</small></div>`;
   }).join('');
 
-  $('weeksGrid').innerHTML = `<h3>Aktiv uke</h3>${activeCard}<h3>Ukeoversikt</h3><div class="statusGrid">${statusCards}</div>`;
+  const exercisePct = Math.min(100, Math.round((exercises / SUMMERMASTER_EXERCISES) * 100));
+  const playerProgress = `<div class="card"><h3>Min fremdrift</h3><p><strong>${exercises}</strong> øvelser fullført</p><div class="progressWrap"><div class="progressBar" style="width:${exercisePct}%"></div></div><p class="smallText">${done}/7 uker godkjent · Bronse ${BRONZE_EXERCISES}, Sølv ${SILVER_EXERCISES}, Gull ${GOLD_EXERCISES}, Sommermester ${SUMMERMASTER_EXERCISES}</p></div>`;
+  $('weeksGrid').innerHTML = `${teamGoalCard}${playerProgress}<h3>Åpne uker</h3>${openCards}<h3>Ukeoversikt</h3><div class="statusGrid">${statusCards}</div>`;
 }
 function openWeek(weekNo){
-  if(!isActiveWeek(weekNo)){
-    alert('Denne uka er ikke aktiv ennå. Du kan bare registrere øvelser for aktiv uke.');
+  if(!isWeekOpen(weekNo)){
+    alert('Denne uka er låst. Trenerne åpner uker etter hvert.');
     return;
   }
   currentWeek = weeks.find(w => w.week === weekNo);
   hideAll(); $('weekScreen').classList.remove('hidden'); $('logoutBtn').classList.remove('hidden');
   $('weekTitle').textContent = `${currentWeek.emoji} Uke ${currentWeek.week} – ${currentWeek.theme}`;
-  $('weekHelp').textContent = 'Dette er aktiv uke. Velg minst 3 av 6 øvelser. Trykk på «Les mer» for forklaring. Uka markeres automatisk som fullført når 3 er valgt.';
+  $('weekDate').textContent = weekDateText(currentWeek.week);
+  $('weekHelp').textContent = 'Velg minst 3 av 6 øvelser. Trykk på «Les mer» for forklaring. Uka markeres automatisk som fullført når 3 er valgt.';
   renderTasks();
 }
 function renderTasks(){
@@ -301,19 +454,52 @@ function sendToGoogleSheet(player, week, taskIndex, checked){
   setTimeout(() => form.remove(), 1000);
 }
 
+function sendOpenWeeksToGoogle(openWeeks){
+  if(!GOOGLE_SCRIPT_URL) return;
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = GOOGLE_SCRIPT_URL;
+  form.target = 'hiddenSubmitFrame';
+  form.style.display = 'none';
+  const data = { action: 'saveOpenWeeks', openWeeks: openWeeks.join(','), source: 'trainer' };
+  Object.entries(data).forEach(([name, value]) => {
+    const input = document.createElement('input'); input.name = name; input.value = value; form.appendChild(input);
+  });
+  document.body.appendChild(form);
+  form.submit();
+  setTimeout(() => form.remove(), 1000);
+}
+
 // Google Sheets-lesing via JSONP, fordi det fungerer fra GitHub Pages uten CORS-trøbbel.
-function loadLogsFromGoogle(){
+function loadDataFromGoogle(){
   return new Promise((resolve) => {
-    if(!GOOGLE_SCRIPT_URL){ resolve([]); return; }
+    if(!GOOGLE_SCRIPT_URL){ resolve({ ok:true, records: [], settings: {} }); return; }
     const cbName = 'jsonpCallback_' + Date.now();
     const script = document.createElement('script');
-    window[cbName] = (data) => { cleanup(); resolve(data.records || []); };
+    window[cbName] = (data) => { cleanup(); resolve(data || { records: [], settings: {} }); };
     function cleanup(){ delete window[cbName]; script.remove(); }
     script.src = GOOGLE_SCRIPT_URL + '?callback=' + cbName + '&t=' + Date.now();
     script.onerror = () => { cleanup(); resolve(null); };
     document.body.appendChild(script);
   });
 }
+async function syncRemoteSettings(){
+  if(!GOOGLE_SCRIPT_URL) return;
+  const data = await loadDataFromGoogle();
+  if(data && data.settings && Array.isArray(data.settings.openWeeks) && data.settings.openWeeks.length){
+    remoteOpenWeeks = normalizeWeeks(data.settings.openWeeks);
+    localStorage.setItem('trainerOpenWeeks', JSON.stringify(remoteOpenWeeks));
+  }
+}
+async function loadLogsFromGoogle(){
+  const data = await loadDataFromGoogle();
+  if(data && data.settings && Array.isArray(data.settings.openWeeks) && data.settings.openWeeks.length){
+    remoteOpenWeeks = normalizeWeeks(data.settings.openWeeks);
+    localStorage.setItem('trainerOpenWeeks', JSON.stringify(remoteOpenWeeks));
+  }
+  return data ? (data.records || []) : null;
+}
+
 function applyLogsToMatrix(logs){
   const matrix = {};
   players.forEach(p => { matrix[p.name] = {}; weeks.forEach(w => matrix[p.name][w.week] = new Set()); });
@@ -337,6 +523,7 @@ function matrixFromLocal(){
 }
 async function showTrainerDashboard(){
   hideAll(); $('trainerScreen').classList.remove('hidden'); $('logoutBtn').classList.add('hidden');
+  renderTrainerControls();
   await loadTrainerStats();
 }
 async function loadTrainerStats(){
@@ -354,27 +541,42 @@ async function loadTrainerStats(){
 }
 function renderTrainerStats(matrix){
   const totalPlayers = players.length;
-  const playerDoneWeeks = players.map(p => ({
-    name: p.name,
-    weeksDone: weeks.filter(w => matrix[p.name][w.week].size >= 3).length
-  }));
-  const started = playerDoneWeeks.filter(p => p.weeksDone > 0).length;
-  const pctStarted = Math.round((started / totalPlayers) * 100);
-  $('statsSummary').innerHTML = `<h3>Lagstatus</h3><p><strong>${totalPlayers}</strong> spillere</p><p><strong>${started}</strong> spillere har fullført minst én uke</p><p><strong>${pctStarted}%</strong> av laget er i gang</p>`;
-  $('weekStats').innerHTML = `<h3>Ukeoversikt</h3><table class="statsTable"><tr><th>Uke</th><th>Tema</th><th>Fullført</th></tr>${weeks.map(w => {
-    const count = players.filter(p => matrix[p.name][w.week].size >= 3).length;
-    return `<tr><td>Uke ${w.week}</td><td>${w.emoji} ${w.theme}</td><td><strong>${count}/${totalPlayers}</strong></td></tr>`;
+  const activeWeek = getActiveWeekNumber();
+
+  const playerStats = players.map(p => {
+    const exercises = weeks.reduce((sum, w) => sum + matrix[p.name][w.week].size, 0);
+    const weeksDone = weeks.filter(w => matrix[p.name][w.week].size >= 3).length;
+    const activeExercises = matrix[p.name][activeWeek] ? matrix[p.name][activeWeek].size : 0;
+    return { name: p.name, exercises, weeksDone, activeExercises };
+  });
+
+  const totalExercises = playerStats.reduce((sum, p) => sum + p.exercises, 0);
+  const goalPct = Math.min(100, Math.round((totalExercises / TEAM_EXERCISE_GOAL) * 100));
+  const activePlayersThisWeek = playerStats.filter(p => p.activeExercises > 0).length;
+  const remaining = Math.max(0, TEAM_EXERCISE_GOAL - totalExercises);
+
+  $('statsSummary').innerHTML = `
+    <h3>Lagets hemmelige sommeroppdrag 🎁</h3>
+    <p><strong>${totalExercises}</strong> av <strong>${TEAM_EXERCISE_GOAL}</strong> øvelser fullført</p>
+    <div class="progressWrap"><div class="progressBar" style="width:${goalPct}%"></div></div>
+    <p><strong>${goalPct}%</strong> av lagmålet er nådd</p>
+    <p class="smallText">${remaining > 0 ? `${remaining} øvelser igjen til hemmelig belønning.` : '🎉 GRATULERER! Dere klarte det! Den hemmelige belønningen avsløres på første trening etter ferien.'}</p>
+    <p>🔥 <strong>${activePlayersThisWeek}</strong> av ${totalPlayers} spillere har vært aktive i uke ${activeWeek}</p>
+  `;
+
+  $('weekStats').innerHTML = `<h3>Ukeoversikt</h3><table class="statsTable"><tr><th>Uke</th><th>Dato</th><th>Status</th><th>Tema</th><th>Øvelser</th><th>Godkjente uker</th></tr>${weeks.map(w => {
+    const exerciseCount = players.reduce((sum, p) => sum + matrix[p.name][w.week].size, 0);
+    const weekDoneCount = players.filter(p => matrix[p.name][w.week].size >= 3).length;
+    const activeClass = w.week === activeWeek ? ' class="activeRow"' : '';
+    return `<tr${activeClass}><td>Uke ${w.week}${w.week === activeWeek ? ' ✅' : ''}</td><td>${weekDateText(w.week)}</td><td>${isWeekOpen(w.week) ? 'Åpen' : 'Låst'}</td><td>${w.emoji} ${w.theme}</td><td><strong>${exerciseCount}</strong></td><td><strong>${weekDoneCount}/${totalPlayers}</strong></td></tr>`;
   }).join('')}</table>`;
-  $('playerStats').innerHTML = `<h3>Spillere</h3><table class="statsTable"><tr><th>Spiller</th><th>Uker</th><th>Status</th></tr>${playerDoneWeeks.sort((a,b)=>b.weeksDone-a.weeksDone || a.name.localeCompare(b.name)).map(p => `<tr><td>${p.name}</td><td>${p.weeksDone}/7</td><td>${levelBadge(p.weeksDone)}</td></tr>`).join('')}</table>`;
-  const notStarted = playerDoneWeeks.filter(p => p.weeksDone === 0).map(p => p.name);
-  $('notStartedStats').innerHTML = `<h3>Ikke startet</h3>${notStarted.length ? `<p class="smallText">Disse har ikke fullført noen uker ennå:</p><p>${notStarted.join('<br>')}</p>` : '<p class="ok">Alle har startet! 🎉</p>'}`;
+
+  $('playerStats').innerHTML = `<h3>Spillere</h3><table class="statsTable"><tr><th>Spiller</th><th>Øvelser</th><th>Uker</th><th>Status</th></tr>${playerStats.sort((a,b)=>b.exercises-a.exercises || b.weeksDone-a.weeksDone || a.name.localeCompare(b.name)).map(p => `<tr><td>${p.name}</td><td>${p.exercises}/42</td><td>${p.weeksDone}/7</td><td>${exerciseLevelBadge(p.exercises)}</td></tr>`).join('')}</table>`;
+
+  const notStarted = playerStats.filter(p => p.exercises === 0).map(p => p.name);
+  $('notStartedStats').innerHTML = `<h3>Ikke startet</h3>${notStarted.length ? `<p class="smallText">Disse har ikke registrert noen øvelser ennå:</p><p>${notStarted.join('<br>')}</p>` : '<p class="ok">Alle har startet! 🎉</p>'}`;
 }
-function levelBadge(done){
-  if(done >= 7) return '<span class="pill">🥇 Gull</span>';
-  if(done >= 5) return '<span class="pill">🥈 Sølv</span>';
-  if(done >= 3) return '<span class="pill">🥉 Bronse</span>';
-  if(done > 0) return '<span class="pill">I gang</span>';
-  return '<span class="pill">Ikke startet</span>';
-}
+
+// Medaljer beregnes nå fra antall fullførte øvelser, ikke antall uker.
 
 init();

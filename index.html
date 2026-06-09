@@ -59,6 +59,7 @@
         <button id="backBtn" class="ghost">← Tilbake</button>
         <div class="card">
           <h2 id="weekTitle"></h2>
+          <p id="weekDate" class="dateBadge"></p>
           <p id="weekHelp" class="muted"></p>
           <div class="progressWrap"><div id="progressBar" class="progressBar"></div></div>
           <p id="progressText" class="progressText"></p>
@@ -71,6 +72,14 @@
         <button id="trainerBackBtn" class="ghost">← Tilbake</button>
         <div class="card">
           <h2>📊 Trenerstatistikk</h2>
+          <p id="activeWeekInfo" class="teamStatus"></p>
+          <div class="openWeeksBox">
+            <h3>🔓 Åpne uker for spillerne</h3>
+            <p class="muted">Huk av ukene spillerne skal kunne registrere. Datoene vises fortsatt i appen.</p>
+            <div id="openWeeksControl" class="openWeeksList"></div>
+            <button id="saveOpenWeeksBtn">Lagre åpne uker</button>
+            <p id="overrideStatus" class="muted"></p>
+          </div>
           <p id="trainerSyncStatus" class="muted"></p>
           <button id="refreshStatsBtn">Oppdater statistikk</button>
         </div>
