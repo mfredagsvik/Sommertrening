@@ -106,3 +106,70 @@ header h1{letter-spacing:.2px;text-transform:none}
 .pill{background:#111;color:#fff}
 .ok{color:#b94600}
 @media(max-width:520px){.clubLogo{width:58px;height:58px}header{padding:14px}.brandHeader{gap:10px}h1{font-size:21px}}
+
+.startMission{text-align:center}
+.startMission h3{color:#f36f21}
+.missionBox{background:linear-gradient(135deg,#fff7f1,#ffe8d7);border:2px solid #f36f21;border-radius:18px;padding:20px;margin:20px 0}
+.secretStatus{font-weight:800;font-size:18px}
+
+
+/* Versjon 18 - Hemmelig oppdrag startside */
+.startMission{
+  text-align:center;
+}
+.startMission > h2{
+  font-size:26px;
+  margin-bottom:6px;
+}
+.startMission > h3{
+  color:#f36f21;
+  letter-spacing:1px;
+  margin-top:0;
+  margin-bottom:18px;
+}
+.missionBox{
+  background:linear-gradient(135deg,#111111 0%,#2a1a12 48%,#f36f21 100%);
+  color:#fff;
+  border:2px solid #f36f21;
+  border-radius:22px;
+  padding:22px 18px;
+  margin:18px 0;
+  box-shadow:0 12px 28px rgba(17,17,17,.22);
+}
+.missionBox h2{
+  font-size:30px;
+  margin:12px 0;
+  color:#fff;
+}
+.missionBox h3{
+  color:#fff;
+  margin-top:0;
+  font-size:22px;
+}
+.missionBox p{
+  font-size:17px;
+  margin:12px 0;
+}
+.missionBox hr{
+  border:none;
+  border-top:1px solid rgba(255,255,255,.35);
+  margin:18px 0;
+}
+.secretStatus{
+  display:inline-block;
+  background:#fff;
+  color:#111;
+  border-radius:999px;
+  padding:10px 14px;
+  font-weight:900;
+  margin-top:14px;
+}
+.missionQuestion{
+  font-weight:900;
+  font-size:19px!important;
+  margin-top:18px!important;
+}
+#playerModeBtn{
+  font-size:19px;
+  padding:18px;
+}
