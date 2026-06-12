@@ -231,7 +231,7 @@ function activeWeekInfoText(){
 
 // 1) Lim inn Google Apps Script Web App URL her etter oppsett.
 // Eksempel: const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycb.../exec';
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyRCFoKvjIYMcKpkG61sJMyLxyqNqhrG2lMbzNP5dEMyKbmVvpwvD8Tj1mmXt8Gar8-vg/exec';
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwboTzTJv9wxUIEXODH0Loi2A1RQ6uxquKSBHHaRTnZ3mNd8NzJ1Z9L5vlEpeoD2vhvWw/exec';
 const TRAINER_PIN = '2014';
 const TEAM_EXERCISE_GOAL = 300;
 const BRONZE_EXERCISES = 10;
@@ -365,38 +365,97 @@ function renderTrainerControls(){
 }
 
 function logout(){ localStorage.removeItem('currentPlayer'); currentPlayer=null; showStart(); }
+
 function showHome(){
-  hideAll(); $('homeScreen').classList.remove('hidden'); $('logoutBtn').classList.remove('hidden');
-  $('welcomeText').textContent = `Hei ${currentPlayer}! 👋`;
-  const done = doneWeeks();
+  hideAll(); 
+  $('homeScreen').classList.remove('hidden'); 
+  $('logoutBtn').classList.remove('hidden');
+
+  const playerFirstName = currentPlayer ? currentPlayer.split(' ')[0] : '';
+  $('welcomeText').textContent = `👋 Hei ${playerFirstName}!`;
+
+  const approvedWeeks = doneWeeks();
   const exercises = totalExercises();
   const activeWeek = getActiveWeekNumber();
-  $('teamStatus').innerHTML = `${exerciseLevelText(exercises)}<br><span class="smallText">${done}/7 uker godkjent. ${activeWeekInfoText()} Fullfør minst 3 av 6 øvelser for å få uka godkjent.</span>`;
-  $('syncStatus').innerHTML = GOOGLE_SCRIPT_URL ? '✅ Registreringer sendes til trenerstatistikk.' : '<span class="warning">Google Sheets er ikke koblet til ennå. Lagmålet under viser bare registreringer på denne enheten til Google Sheets kobles til.</span>';
+  const activeWeekCount = completedCount(currentPlayer, activeWeek);
+  const openWeeks = getOpenWeeks();
+
+  $('teamStatus').innerHTML = `${exerciseLevelText(exercises)}`;
+  $('syncStatus').innerHTML = '';
 
   const teamExercises = allLocalTotalExercises();
   const activePlayers = localActivePlayersThisWeek();
-  const teamGoalCard = renderTeamGoalCard(teamExercises, activePlayers);
+  const teamPct = Math.min(100, Math.round((teamExercises / TEAM_EXERCISE_GOAL) * 100));
 
-  const openWeeks = getOpenWeeks();
+  const playerCard = `
+    <div class="cleanHomeGrid">
+      <div class="miniCard">
+        <div class="miniIcon">🏅</div>
+        <h3>Min status</h3>
+        <p><strong>${exercises}</strong> øvelser</p>
+        <p class="smallText">${exerciseLevelText(exercises)}</p>
+      </div>
+
+      <div class="miniCard">
+        <div class="miniIcon">📅</div>
+        <h3>Uke ${activeWeek}</h3>
+        <p><strong>${activeWeekCount}</strong> av 6 fullført</p>
+        <p class="smallText">${weekDateText(activeWeek)}</p>
+      </div>
+    </div>
+  `;
+
+  const teamGoalCard = `
+    <div class="card secretCard">
+      <h3>🎯 Lagets sommeroppdrag</h3>
+      <p class="bigStat"><strong>${teamExercises}</strong> / ${TEAM_EXERCISE_GOAL} øvelser</p>
+      <div class="progressWrap"><div class="progressBar" style="width:${teamPct}%"></div></div>
+      <p><strong>${teamPct}%</strong> fullført</p>
+      <p>🔥 <strong>${activePlayers}</strong> av ${players.length} spillere aktive denne uka</p>
+    </div>
+  `;
+
+  const rewardCard = `
+    <div class="card rewardMini">
+      <h3>🎁 Belønning</h3>
+      <p class="secretWord">HEMMELIG</p>
+    </div>
+  `;
+
   const openCards = weeks.filter(w => openWeeks.includes(w.week)).map(w => {
     const c = completedCount(currentPlayer, w.week);
     const done = c >= 3;
     const activeCls = w.week === activeWeek ? 'active' : '';
-    return `<button class="weekBtn ${activeCls} ${done?'done':''}" onclick="openWeek(${w.week})"><span class="title">${w.emoji} Uke ${w.week} – ${w.theme} <span>${done?'✅':'⬜'}</span></span><span class="dateLine">${weekDateText(w.week)}</span><span class="subtitle">✅ Åpen · ${c}/6 øvelser · ${done?'Fullført':'minst 3 for godkjent'}</span></button>`;
+    return `<button class="weekBtn ${activeCls} ${done?'done':''}" onclick="openWeek(${w.week})">
+      <span class="title">${w.emoji} Uke ${w.week} – ${w.theme} <span>${done?'✅':'⬜'}</span></span>
+      <span class="dateLine">${weekDateText(w.week)}</span>
+      <span class="subtitle">${c}/6 øvelser · ${done?'Uka er godkjent':'minst 3 for godkjent'}</span>
+    </button>`;
   }).join('') || '<div class="card"><p>Ingen uker er åpnet ennå.</p></div>';
 
   const statusCards = weeks.map(w => {
     const c = completedCount(currentPlayer, w.week);
     const isDone = c >= 3;
     const isOpen = openWeeks.includes(w.week);
-    return `<div class="weekStatus ${isDone?'done':''} ${!isOpen?'locked':''}"><span>${w.emoji} Uke ${w.week} – ${w.theme}</span><strong>${isDone?'✅ Fullført':(isOpen?'⬜ Åpen':'🔒 Låst')}</strong><small>${weekDateText(w.week)}</small><small>${c}/6 · ${weekOpenText(w)}</small></div>`;
+    return `<div class="weekStatus ${isDone?'done':''} ${!isOpen?'locked':''}">
+      <span>${w.emoji} Uke ${w.week} – ${w.theme}</span>
+      <strong>${isDone?'✅ Fullført':(isOpen?'⬜ Åpen':'🔒 Låst')}</strong>
+      <small>${weekDateText(w.week)}</small>
+      <small>${c}/6 øvelser</small>
+    </div>`;
   }).join('');
 
-  const exercisePct = Math.min(100, Math.round((exercises / SUMMERMASTER_EXERCISES) * 100));
-  const playerProgress = `<div class="card"><h3>Min fremdrift</h3><p><strong>${exercises}</strong> øvelser fullført</p><div class="progressWrap"><div class="progressBar" style="width:${exercisePct}%"></div></div><p class="smallText">${done}/7 uker godkjent · Bronse ${BRONZE_EXERCISES}, Sølv ${SILVER_EXERCISES}, Gull ${GOLD_EXERCISES}, Sommermester ${SUMMERMASTER_EXERCISES}</p></div>`;
-  $('weeksGrid').innerHTML = `${teamGoalCard}${playerProgress}<h3>Åpne uker</h3>${openCards}<h3>Ukeoversikt</h3><div class="statusGrid">${statusCards}</div>`;
+  $('weeksGrid').innerHTML = `
+    ${playerCard}
+    ${teamGoalCard}
+    ${rewardCard}
+    <h3>⚽ Åpen uke</h3>
+    ${openCards}
+    <h3>Ukeoversikt</h3>
+    <div class="statusGrid">${statusCards}</div>
+  `;
 }
+
 function openWeek(weekNo){
   if(!isWeekOpen(weekNo)){
     alert('Denne uka er låst. Trenerne åpner uker etter hvert.');
