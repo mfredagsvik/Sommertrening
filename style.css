@@ -183,3 +183,9 @@ header h1{letter-spacing:.2px;text-transform:none}
 @media(max-width:520px){
   .cleanHomeGrid{grid-template-columns:1fr}
 }
+
+/* Versjon 24 - feedbackjusteringer */
+.celebrationCard{text-align:center;background:linear-gradient(135deg,#fff1e7,#fff7d8);border:2px solid #f36f21}
+.celebrationCard h3{font-size:24px;margin-bottom:8px}
+.confettiLine{font-size:28px;margin-top:12px;animation:popSoft 1.2s ease-in-out infinite alternate}
+@keyframes popSoft{from{transform:scale(1);opacity:.85}to{transform:scale(1.04);opacity:1}}

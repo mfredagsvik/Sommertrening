@@ -233,7 +233,7 @@ function activeWeekInfoText(){
 // Eksempel: const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycb.../exec';
 const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyndKuRR36vWvmWgEdkG1QI-hpVFWH92QHS0Ilvv6BOCh4p2jJyxLanW2caw9vXoIS6Ew/exec';
 const TRAINER_PIN = '2014';
-const TEAM_EXERCISE_GOAL = 300;
+const TEAM_EXERCISE_GOAL = 500;
 const BRONZE_EXERCISES = 10;
 const SILVER_EXERCISES = 20;
 const GOLD_EXERCISES = 30;
@@ -253,11 +253,11 @@ function isWeekDone(player, week){ return completedCount(player, week) >= 3; }
 function doneWeeks(player = currentPlayer){ return weeks.filter(w => isWeekDone(player, w.week)).length; }
 function totalExercises(player = currentPlayer){ return weeks.reduce((sum, w) => sum + completedCount(player, w.week), 0); }
 function exerciseLevelText(count){
-  if(count >= SUMMERMASTER_EXERCISES) return `👑 Sommermester – ${count} av 42 øvelser fullført!`;
-  if(count >= GOLD_EXERCISES) return `🥇 Gull – ${count} øvelser fullført`;
-  if(count >= SILVER_EXERCISES) return `🥈 Sølv – ${count} øvelser fullført`;
-  if(count >= BRONZE_EXERCISES) return `🥉 Bronse – ${count} øvelser fullført`;
-  return `Status: Bronsejakt! ${count}/${BRONZE_EXERCISES} øvelser`;
+  if(count >= SUMMERMASTER_EXERCISES) return `👑 Sommermester – alle ${SUMMERMASTER_EXERCISES} øvelser fullført!`;
+  if(count >= GOLD_EXERCISES) return `🥇 Gull – ${count} øvelser fullført. ${SUMMERMASTER_EXERCISES - count} igjen til Sommermester`;
+  if(count >= SILVER_EXERCISES) return `🥈 Sølv – ${count} øvelser fullført. ${GOLD_EXERCISES - count} igjen til Gull`;
+  if(count >= BRONZE_EXERCISES) return `🥉 Bronse – ${count} øvelser fullført. ${SILVER_EXERCISES - count} igjen til Sølv`;
+  return `🥉 Bronsejakt – ${count}/${BRONZE_EXERCISES} øvelser. ${BRONZE_EXERCISES - count} igjen til Bronse`;
 }
 function exerciseLevelBadge(count){
   if(count >= SUMMERMASTER_EXERCISES) return '<span class="pill">👑 Sommermester</span>';
@@ -317,7 +317,7 @@ function init(){
 function showStart(){ hideAll(); $('startScreen').classList.remove('hidden'); $('logoutBtn').classList.add('hidden'); }
 function showLogin(){ hideAll(); $('loginScreen').classList.remove('hidden'); $('logoutBtn').classList.add('hidden'); }
 function showTrainerLogin(){ hideAll(); $('trainerLoginScreen').classList.remove('hidden'); $('logoutBtn').classList.add('hidden'); }
-function login(){
+async function login(){
   const name = $('playerSelect').value;
   const pin = $('pinInput').value.trim();
   const player = players.find(p => p.name === name);
@@ -325,6 +325,7 @@ function login(){
   currentPlayer = name;
   localStorage.setItem('currentPlayer', name);
   $('pinInput').value=''; $('loginError').textContent='';
+  await syncCurrentPlayerFromGoogle();
   showHome();
 }
 function trainerLogin(){
@@ -366,7 +367,8 @@ function renderTrainerControls(){
 
 function logout(){ localStorage.removeItem('currentPlayer'); currentPlayer=null; showStart(); }
 
-function showHome(){
+async function showHome(){
+  await syncCurrentPlayerFromGoogle();
   hideAll(); 
   $('homeScreen').classList.remove('hidden'); 
   $('logoutBtn').classList.remove('hidden');
@@ -415,6 +417,8 @@ function showHome(){
     </div>
   `;
 
+  const summerMasterCard = exercises >= SUMMERMASTER_EXERCISES ? `<div class="card celebrationCard"><h3>🎉 SOMMERMESTER!</h3><p>Du har fullført alle 42 øvelsene. Fantastisk innsats! ⚽🔥</p><div class="confettiLine">🎊 🎉 ⚽ 🎉 🎊</div></div>` : '';
+
   const rewardCard = `
     <div class="card rewardMini">
       <h3>🎁 Belønning</h3>
@@ -449,6 +453,7 @@ function showHome(){
     ${playerCard}
     ${teamGoalCard}
     ${rewardCard}
+    ${summerMasterCard}
     <h3>⚽ Åpen uke</h3>
     ${openCards}
     <h3>Ukeoversikt</h3>
@@ -483,19 +488,49 @@ function renderTasks(){
 }
 function toggleDetails(i){ $('details_' + i).classList.toggle('hidden'); }
 function toggleTask(i, checked){
+  if(checked && !canRegisterMoreToday(currentPlayer, currentWeek.week, i)){
+    alert('Du kan registrere maks 6 nye øvelser per dag. Ta resten en annen dag ⚽');
+    renderTasks();
+    return;
+  }
   let saved = getSavedTasks(currentPlayer, currentWeek.week);
-  if(checked && !saved.includes(i)) saved.push(i);
+  if(checked && !saved.includes(i)){
+    saved.push(i);
+    markDailyRegisteredTask(currentPlayer, currentWeek.week, i);
+  }
   if(!checked) saved = saved.filter(x => x !== i);
   saveTasks(currentPlayer, currentWeek.week, saved);
   sendToGoogleSheet(currentPlayer, currentWeek.week, i, checked);
   renderTasks();
 }
+
 function updateProgress(){
   const count = completedCount(currentPlayer, currentWeek.week);
   const pct = Math.min(count/3,1)*100;
   $('progressBar').style.width = pct + '%';
   $('progressText').textContent = `${count}/6 øvelser valgt – ${count >= 3 ? 'uka er godkjent ✅' : 'velg minst 3 for å fullføre uka'}`;
   $('completedBox').classList.toggle('hidden', count < 3);
+}
+
+
+function todayKey(){
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function dailyTaskKey(player){ return `daily_tasks_${player}_${todayKey()}`; }
+function getDailyRegisteredTasks(player){ return JSON.parse(localStorage.getItem(dailyTaskKey(player)) || '[]'); }
+function markDailyRegisteredTask(player, week, taskIndex){
+  const k = `${week}_${taskIndex}`;
+  const arr = getDailyRegisteredTasks(player);
+  if(!arr.includes(k)){
+    arr.push(k);
+    localStorage.setItem(dailyTaskKey(player), JSON.stringify(arr));
+  }
+}
+function canRegisterMoreToday(player, week, taskIndex){
+  const k = `${week}_${taskIndex}`;
+  const arr = getDailyRegisteredTasks(player);
+  return arr.includes(k) || arr.length < 6;
 }
 
 function sendToGoogleSheet(player, week, taskIndex, checked){
@@ -559,6 +594,18 @@ async function loadLogsFromGoogle(){
     localStorage.setItem('trainerOpenWeeks', JSON.stringify(remoteOpenWeeks));
   }
   return data ? (data.records || []) : null;
+}
+
+
+async function syncCurrentPlayerFromGoogle(){
+  if(!GOOGLE_SCRIPT_URL || !currentPlayer) return;
+  const logs = await loadLogsFromGoogle();
+  if(!logs) return;
+  const matrix = applyLogsToMatrix(logs);
+  if(!matrix[currentPlayer]) return;
+  weeks.forEach(w => {
+    saveTasks(currentPlayer, w.week, Array.from(matrix[currentPlayer][w.week] || []));
+  });
 }
 
 function applyLogsToMatrix(logs){
